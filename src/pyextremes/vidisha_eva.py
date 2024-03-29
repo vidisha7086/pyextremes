@@ -1329,375 +1329,106 @@ class EVA:
             columns=["return value", "lower ci", "upper ci"],
         )
 
-    def plot_return_values(
-        self,
-        return_period=None,
-        return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
-        alpha: typing.Optional[float] = None,
-        plotting_position: typing.Literal[
-            "ecdf",
-            "hazen",
-            "weibull",
-            "tukey",
-            "blom",
-            "median",
-            "cunnane",
-            "gringorten",
-            "beard",
-        ] = "weibull",
-        ax: typing.Optional[plt.Axes] = None,
-        figsize: typing.Tuple[float, float] = (8, 5),
+    def plot_return_values_individual(
+    self,
+    return_period=None,
+    return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
+    alpha: typing.Optional[float] = None,
+    plotting_position: typing.Literal[
+        "ecdf",
+        "hazen",
+        "weibull",
+        "tukey",
+        "blom",
+        "median",
+        "cunnane",
+        "gringorten",
+        "beard",
+    ] = "weibull",
+    figsize: typing.Tuple[float, float] = (8, 5),
+    **kwargs,
+) -> tuple:  # pragma: no cover
+    observed_return_values = get_return_periods(
+        ts=self.data,
+        extremes=self.extremes,
+        extremes_method=self.extremes_method,
+        extremes_type=self.extremes_type,
+        block_size=self.extremes_kwargs.get("block_size", None),
+        return_period_size=return_period_size,
+        plotting_position=plotting_position,
+    )
+    
+    modeled_return_values = self.get_summary(
+        return_period=return_period,
+        return_period_size=return_period_size,
+        alpha=alpha,
         **kwargs,
-    ) -> tuple:  # pragma: no cover
-        """
-        Plot return values and confidence intervals for given return periods.
+    )
 
-        Parameters
-        ----------
-        return_period : array-like, optional
-            Return period or 1D array of return periods.
-            Given as a multiple of `return_period_size`.
-            If None (default), calculates as 100 values uniformly spaced
-            within the range of return periods of the extracted extreme values.
-        return_period_size : str or pandas.Timedelta, optional
-            Size of return periods (default='365.2425D').
-            If set to '30D', then a return period of 12
-            would be roughly equivalent to a 1 year return period (360 days).
-        alpha : float, optional
-            Width of confidence interval (0, 1).
-            If None (default), confidence interval bounds are not plotted.
-        plotting_position : str, optional
-            Plotting position name (default='weibull'), not case-sensitive.
-            Supported plotting positions:
-                ecdf, hazen, weibull, tukey, blom, median, cunnane, gringorten, beard
-        ax : matplotlib.axes._axes.Axes, optional
-            Axes onto which the return value plot is drawn.
-            If None (default), a new figure and axes objects are created.
-        figsize : tuple, optional
-            Figure size in inches in format (width, height).
-            By default it is (8, 5).
-        kwargs
-            Model-specific keyword arguments.
-            If alpha is None, keyword arguments are ignored
-            (error still raised for unrecognized arguments).
-            MLE model:
-                n_samples : int, optional
-                    Number of bootstrap samples used to estimate
-                    confidence interval bounds (default=100).
-            Emcee model:
-                burn_in : int
-                    Burn-in value (number of first steps to discard for each walker).
+    return plot_return_values(
+        observed_return_values=observed_return_values,
+        modeled_return_values=modeled_return_values,
+        figsize=figsize,
+    )
 
-        Returns
-        -------
-        figure : matplotlib.figure.Figure
-            Figure object.
-        axes : matplotlib.axes._axes.Axes
-            Axes object.
+    def plot_probability_individual(
+    self,
+    plot_type: str,
+    return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
+    plotting_position: typing.Literal[
+        "ecdf",
+        "hazen",
+        "weibull",
+        "tukey",
+        "blom",
+        "median",
+        "cunnane",
+        "gringorten",
+        "beard",
+    ] = "weibull",
+    figsize: typing.Tuple[float, float] = (8, 8),
+) -> tuple:  # pragma: no cover
+    observed_return_values = get_return_periods(
+        ts=self.data,
+        extremes=self.extremes,
+        extremes_method=self.extremes_method,
+        extremes_type=self.extremes_type,
+        block_size=self.extremes_kwargs.get("block_size", None),
+        return_period_size=return_period_size,
+        plotting_position=plotting_position,
+    )
 
-        """
-        # Get observed return values
-        observed_return_values = get_return_periods(
-            ts=self.data,
-            extremes=self.extremes,
-            extremes_method=self.extremes_method,
-            extremes_type=self.extremes_type,
-            block_size=self.extremes_kwargs.get("block_size", None),
-            return_period_size=return_period_size,
-            plotting_position=plotting_position,
-        )
+    return plot_probability(
+        observed_return_values=observed_return_values,
+        plot_type=plot_type,
+        figsize=figsize,
+    )
 
-        # Parse the 'return_period' argument
-        if return_period is None:
-            return_period = np.linspace(
-                observed_return_values.loc[:, "return period"].min(),
-                observed_return_values.loc[:, "return period"].max(),
-                100,
-            )
-        else:
-            # Convert 'return_period' to ndarray
-            return_period = np.asarray(a=return_period, dtype=np.float64).copy()
-            if return_period.ndim == 0:
-                return_period = return_period[np.newaxis]
-            if return_period.ndim != 1:
-                raise ValueError(
-                    f"invalid shape in {return_period.shape} "
-                    f"for the 'return_period' argument, must be 1D array"
-                )
-            if len(return_period) < 2:
-                raise ValueError(
-                    f"'return_period' must have at least 2 return periods, "
-                    f"{len(return_period)} was given"
-                )
-
-        # Get modeled return values
-        modeled_return_values = self.get_summary(
-            return_period=return_period,
-            return_period_size=return_period_size,
-            alpha=alpha,
-            **kwargs,
-        )
-
-        # Plot return values
-        return plot_return_values(
-            observed_return_values=observed_return_values,
-            modeled_return_values=modeled_return_values,
-            ax=ax,
-            figsize=figsize,
-        )
-
-    def plot_probability(
-        self,
-        plot_type: str,
-        return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
-        plotting_position: typing.Literal[
-            "ecdf",
-            "hazen",
-            "weibull",
-            "tukey",
-            "blom",
-            "median",
-            "cunnane",
-            "gringorten",
-            "beard",
-        ] = "weibull",
-        ax: typing.Optional[plt.Axes] = None,
-        figsize: typing.Tuple[float, float] = (8, 8),
-    ) -> tuple:  # pragma: no cover
-        """
-        Plot a probability plot (QQ or PP).
-
-        Parameters
-        ----------
-        plot_type : str
-            Probability plot type.
-            Supported values:
-                PP - probability plot
-                QQ - quantile plot
-        return_period_size : str or pandas.Timedelta, optional
-            Size of return periods (default='365.2425D').
-            If set to '30D', then a return period of 12
-            would be roughly equivalent to a 1 year return period (360 days).
-        plotting_position : str, optional
-            Plotting position name (default='weibull'), not case-sensitive.
-            Supported plotting positions:
-                ecdf, hazen, weibull, tukey, blom, median, cunnane, gringorten, beard
-        ax : matplotlib.axes._axes.Axes, optional
-            Axes onto which the probability plot is drawn.
-            If None (default), a new figure and axes objects are created.
-        figsize : tuple, optional
-            Figure size in inches in format (width, height).
-            By default it is (8, 8).
-
-        Returns
-        -------
-        figure : matplotlib.figure.Figure
-            Figure object.
-        axes : matplotlib.axes._axes.Axes
-            Axes object.
-
-        """
-        # Get observed return values
-        observed_return_values = get_return_periods(
-            ts=self.data,
-            extremes=self.extremes,
-            extremes_method=self.extremes_method,
-            extremes_type=self.extremes_type,
-            block_size=self.extremes_kwargs.get("block_size", None),
-            return_period_size=return_period_size,
-            plotting_position=plotting_position,
-        )
-
-        # Get observed and theoretical values
-        # depending on 'plot_type'
-        if plot_type == "PP":
-            observed = (
-                1 - observed_return_values.loc[:, "exceedance probability"].values
-            )
-            theoretical = self.model.cdf(
-                self.extremes_transformer.transform(
-                    observed_return_values.loc[:, self.extremes.name].values
-                )
-            )
-        elif plot_type == "QQ":
-            observed = observed_return_values.loc[:, self.extremes.name].values
-            theoretical = self.extremes_transformer.transform(
-                self.model.isf(
-                    observed_return_values.loc[:, "exceedance probability"].values
-                )
-            )
-        else:
-            raise ValueError(
-                f"invalid value in '{plot_type}' for the 'plot_type' argument, "
-                f"available values: PP, QQ"
-            )
-
-        # Plot the probability plot
-        return plot_probability(
-            observed=observed,
-            theoretical=theoretical,
-            ax=ax,
-            figsize=figsize,
-        )
-
-    def plot_diagnostic(
-        self,
-        return_period=None,
-        return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
-        alpha: typing.Optional[float] = None,
-        plotting_position: typing.Literal[
-            "ecdf",
-            "hazen",
-            "weibull",
-            "tukey",
-            "blom",
-            "median",
-            "cunnane",
-            "gringorten",
-            "beard",
-        ] = "weibull",
-        figsize: typing.Tuple[float, float] = (8, 8),
+    def plot_diagnostic_individual(
+    self,
+    return_period=None,
+    return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
+    alpha: typing.Optional[float] = None,
+    plotting_position: typing.Literal[
+        "ecdf",
+        "hazen",
+        "weibull",
+        "tukey",
+        "blom",
+        "median",
+        "cunnane",
+        "gringorten",
+        "beard",
+    ] = "weibull",
+    figsize: typing.Tuple[float, float] = (8, 8),
+    **kwargs,
+):  # pragma: no cover
+    fig, axes = self.plot_diagnostic(
+        return_period=return_period,
+        return_period_size=return_period_size,
+        alpha=alpha,
+        plotting_position=plotting_position,
+        figsize=figsize,
         **kwargs,
-    ):  # pragma: no cover
-        """
-        Plot a diagnostic plot.
-
-        This plot shows four key plots characterizing the EVA model:
-            - top left : return values plot
-            - top right : probability density (PDF) plot
-            - bottom left : quantile (Q-Q) plot
-            - bottom right : probability (P-P) plot
-
-        Parameters
-        ----------
-        return_period : array-like, optional
-            Return period or 1D array of return periods.
-            Given as a multiple of `return_period_size`.
-            If None (default), calculates as 100 values uniformly spaced
-            within the range of return periods of the extracted extreme values.
-        return_period_size : str or pandas.Timedelta, optional
-            Size of return periods (default='365.2425D').
-            If set to '30D', then a return period of 12
-            would be roughly equivalent to a 1 year return period (360 days).
-        alpha : float, optional
-            Width of confidence interval (0, 1).
-            If None (default), confidence interval bounds are not plotted.
-        plotting_position : str, optional
-            Plotting position name (default='weibull'), not case-sensitive.
-            Supported plotting positions:
-                ecdf, hazen, weibull, tukey, blom, median, cunnane, gringorten, beard
-        figsize : tuple, optional
-            Figure size in inches in format (width, height).
-            By default it is (8, 8).
-        kwargs
-            Model-specific keyword arguments.
-            If alpha is None, keyword arguments are ignored
-            (error still raised for unrecognized arguments).
-            MLE model:
-                n_samples : int, optional
-                    Number of bootstrap samples used to estimate
-                    confidence interval bounds (default=100).
-            Emcee model:
-                burn_in : int
-                    Burn-in value (number of first steps to discard for each walker).
-
-        Returns
-        -------
-        figure : matplotlib.figure.Figure
-            Figure object.
-        axes : tuple
-            Tuple with four Axes objects: return values, pdf, qq, pp
-
-        """
-        with plt.rc_context(rc=pyextremes_rc):
-            # Create figure
-            fig = plt.figure(figsize=figsize, dpi=96)
-
-            # Create gridspec
-            gs = matplotlib.gridspec.GridSpec(
-                nrows=2,
-                ncols=2,
-                wspace=0.3,
-                hspace=0.3,
-                width_ratios=[1, 1],
-                height_ratios=[1, 1],
-            )
-
-            # Create axes
-            ax_rv = fig.add_subplot(gs[0, 0])
-            ax_pdf = fig.add_subplot(gs[0, 1])
-            ax_qq = fig.add_subplot(gs[1, 0])
-            ax_pp = fig.add_subplot(gs[1, 1])
-
-            # Plot return values
-            self.plot_return_values(
-                return_period=return_period,
-                return_period_size=return_period_size,
-                alpha=alpha,
-                plotting_position=plotting_position,
-                ax=ax_rv,
-                **kwargs,
-            )
-            ax_rv.set_title("Return value plot")
-            ax_rv.grid(False, which="both")
-
-            # Plot PDF
-            pdf_support = np.linspace(self.extremes.min(), self.extremes.max(), 100)
-            pdf = self.model.pdf(self.extremes_transformer.transform(pdf_support))
-            ax_pdf.grid(False)
-            ax_pdf.set_title("Probability density plot")
-            ax_pdf.set_ylabel("Probability density")
-            ax_pdf.set_xlabel(self.data.name)
-            ax_pdf.hist(
-                self.extremes.values,
-                bins=np.histogram_bin_edges(a=self.extremes.values, bins="auto"),
-                density=True,
-                rwidth=0.8,
-                facecolor="#5199FF",
-                edgecolor="None",
-                lw=0,
-                alpha=0.25,
-                zorder=5,
-            )
-            ax_pdf.hist(
-                self.extremes.values,
-                bins=np.histogram_bin_edges(a=self.extremes.values, bins="auto"),
-                density=True,
-                rwidth=0.8,
-                facecolor="None",
-                edgecolor="#5199FF",
-                lw=1,
-                ls="--",
-                zorder=10,
-            )
-            ax_pdf.plot(pdf_support, pdf, color="#F85C50", lw=2, ls="-", zorder=15)
-            ax_pdf.scatter(
-                self.extremes.values,
-                np.full(shape=len(self.extremes), fill_value=0),
-                marker="|",
-                s=40,
-                color="k",
-                lw=0.5,
-                zorder=15,
-            )
-            ax_pdf.set_ylim(0, ax_pdf.get_ylim()[1])
-
-            # Plot Q-Q plot
-            self.plot_probability(
-                plot_type="QQ",
-                return_period_size=return_period_size,
-                plotting_position=plotting_position,
-                ax=ax_qq,
-            )
-            ax_qq.set_title("Q-Q plot")
-
-            # Plot P-P plot
-            self.plot_probability(
-                plot_type="PP",
-                return_period_size=return_period_size,
-                plotting_position=plotting_position,
-                ax=ax_pp,
-            )
-            ax_pp.set_title("P-P plot")
-
-            return fig, (ax_rv, ax_pdf, ax_qq, ax_pp)
+    )
+    return fig, axes
