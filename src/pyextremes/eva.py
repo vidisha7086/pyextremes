@@ -1858,6 +1858,93 @@ class EVA:
             return (fig_rv, fig_pdf, fig_qq, fig_pp), (ax_rv, ax_pdf, ax_qq, ax_pp)
 
         
-    
+    import os
+
+def plot_diagnostic_new_and_save(
+        self,
+        return_period=None,
+        return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
+        alpha: typing.Optional[float] = None,
+        plotting_position: typing.Literal[
+            "ecdf",
+            "hazen",
+            "weibull",
+            "tukey",
+            "blom",
+            "median",
+            "cunnane",
+            "gringorten",
+            "beard",
+        ] = "weibull",
+        figsize: typing.Tuple[float, float] = (8, 8),
+        directory_path: str = None,
+        **kwargs,
+    ):
+    """
+    Plot a diagnostic plot and save each plot to a directory.
+
+    This plot shows four key plots characterizing the EVA model:
+        - return values plot
+        - probability density (PDF) plot
+        - quantile (Q-Q) plot
+        - probability (P-P) plot
+
+    Parameters
+    ----------
+    return_period : array-like, optional
+        Return period or 1D array of return periods.
+        Given as a multiple of `return_period_size`.
+        If None (default), calculates as 100 values uniformly spaced
+        within the range of return periods of the extracted extreme values.
+    return_period_size : str or pandas.Timedelta, optional
+        Size of return periods (default='365.2425D').
+        If set to '30D', then a return period of 12
+        would be roughly equivalent to a 1 year return period (360 days).
+    alpha : float, optional
+        Width of confidence interval (0, 1).
+        If None (default), confidence interval bounds are not plotted.
+    plotting_position : str, optional
+        Plotting position name (default='weibull'), not case-sensitive.
+        Supported plotting positions:
+            ecdf, hazen, weibull, tukey, blom, median, cunnane, gringorten, beard
+    figsize : tuple, optional
+        Figure size in inches in format (width, height).
+        By default it is (8, 8).
+    directory_path : str, optional
+        Directory path to save the plots.
+    kwargs
+        Model-specific keyword arguments.
+        If alpha is None, keyword arguments are ignored
+        (error still raised for unrecognized arguments).
+        MLE model:
+            n_samples : int, optional
+                Number of bootstrap samples used to estimate
+                confidence interval bounds (default=100).
+        Emcee model:
+            burn_in : int
+                Burn-in value (number of first steps to discard for each walker).
+
+    Returns
+    -------
+    figures : tuple
+        Tuple with four Figure objects: return values, pdf, qq, pp
+    axes : tuple
+        Tuple with four Axes objects: return values, pdf, qq, pp
+
+    """
+    # Plot diagnostic plot
+    figures, axes = self.plot_diagnostic_new(return_period, return_period_size, alpha, plotting_position, figsize, **kwargs)
+
+    # Check if directory_path is provided
+    if directory_path is not None:
+        # Create the directory if it does not exist
+        os.makedirs(directory_path, exist_ok=True)
+
+        # Iterate over the figures and save each one
+        for i, fig in enumerate(figures):
+            fig.savefig(os.path.join(directory_path, f'plot_{i+1}.svg'), format='svg')
+
+    return figures, axes
+
 
         
