@@ -1540,161 +1540,164 @@ class EVA:
             figsize=figsize,
         )
 
-   
-      
+    def plot_diagnostic(
+        self,
+        return_period=None,
+        return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
+        alpha: typing.Optional[float] = None,
+        plotting_position: typing.Literal[
+            "ecdf",
+            "hazen",
+            "weibull",
+            "tukey",
+            "blom",
+            "median",
+            "cunnane",
+            "gringorten",
+            "beard",
+        ] = "weibull",
+        figsize: typing.Tuple[float, float] = (8, 8),
+        **kwargs,
+    ):  # pragma: no cover
+        """
+        Plot a diagnostic plot.
 
-def plot_diagnostic(
-    self,
-    return_period=None,
-    return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
-    alpha: typing.Optional[float] = None,
-    plotting_position: typing.Literal[
-        "ecdf",
-        "hazen",
-        "weibull",
-        "tukey",
-        "blom",
-        "median",
-        "cunnane",
-        "gringorten",
-        "beard",
-    ] = "weibull",
-    figsize: typing.Tuple[float, float] = (8, 8),
-    **kwargs,
-):
-    """
-    Plot individual diagnostic plots.
+        This plot shows four key plots characterizing the EVA model:
+            - top left : return values plot
+            - top right : probability density (PDF) plot
+            - bottom left : quantile (Q-Q) plot
+            - bottom right : probability (P-P) plot
 
-    This function plots four key diagnostic plots characterizing the EVA model:
-        - return values plot
-        - probability density (PDF) plot
-        - quantile (Q-Q) plot
-        - probability (P-P) plot
+        Parameters
+        ----------
+        return_period : array-like, optional
+            Return period or 1D array of return periods.
+            Given as a multiple of `return_period_size`.
+            If None (default), calculates as 100 values uniformly spaced
+            within the range of return periods of the extracted extreme values.
+        return_period_size : str or pandas.Timedelta, optional
+            Size of return periods (default='365.2425D').
+            If set to '30D', then a return period of 12
+            would be roughly equivalent to a 1 year return period (360 days).
+        alpha : float, optional
+            Width of confidence interval (0, 1).
+            If None (default), confidence interval bounds are not plotted.
+        plotting_position : str, optional
+            Plotting position name (default='weibull'), not case-sensitive.
+            Supported plotting positions:
+                ecdf, hazen, weibull, tukey, blom, median, cunnane, gringorten, beard
+        figsize : tuple, optional
+            Figure size in inches in format (width, height).
+            By default it is (8, 8).
+        kwargs
+            Model-specific keyword arguments.
+            If alpha is None, keyword arguments are ignored
+            (error still raised for unrecognized arguments).
+            MLE model:
+                n_samples : int, optional
+                    Number of bootstrap samples used to estimate
+                    confidence interval bounds (default=100).
+            Emcee model:
+                burn_in : int
+                    Burn-in value (number of first steps to discard for each walker).
 
-    Parameters
-    ----------
-    return_period : array-like, optional
-        Return period or 1D array of return periods.
-        Given as a multiple of `return_period_size`.
-        If None (default), calculates as 100 values uniformly spaced
-        within the range of return periods of the extracted extreme values.
-    return_period_size : str or pandas.Timedelta, optional
-        Size of return periods (default='365.2425D').
-        If set to '30D', then a return period of 12
-        would be roughly equivalent to a 1 year return period (360 days).
-    alpha : float, optional
-        Width of confidence interval (0, 1).
-        If None (default), confidence interval bounds are not plotted.
-    plotting_position : str, optional
-        Plotting position name (default='weibull'), not case-sensitive.
-        Supported plotting positions:
-            ecdf, hazen, weibull, tukey, blom, median, cunnane, gringorten, beard
-    figsize : tuple, optional
-        Figure size in inches in format (width, height).
-        By default it is (8, 8).
-    kwargs
-        Model-specific keyword arguments.
-        If alpha is None, keyword arguments are ignored
-        (error still raised for unrecognized arguments).
-        MLE model:
-            n_samples : int, optional
-                Number of bootstrap samples used to estimate
-                confidence interval bounds (default=100).
-        Emcee model:
-            burn_in : int
-                Burn-in value (number of first steps to discard for each walker).
+        Returns
+        -------
+        figure : matplotlib.figure.Figure
+            Figure object.
+        axes : tuple
+            Tuple with four Axes objects: return values, pdf, qq, pp
 
-    Returns
-    -------
-    figures : tuple
-        Tuple with four Figure objects: return values, pdf, qq, pp
-    axes : tuple
-        Tuple with four Axes objects: return values, pdf, qq, pp
+        """
+        with plt.rc_context(rc=pyextremes_rc):
+            # Create figure
+            fig = plt.figure(figsize=figsize, dpi=96)
 
-    """
-    with plt.rc_context(rc=pyextremes_rc):
-        # Create figures
-        fig_rv = plt.figure(figsize=figsize, dpi=96)
-        fig_pdf = plt.figure(figsize=figsize, dpi=96)
-        fig_qq = plt.figure(figsize=figsize, dpi=96)
-        fig_pp = plt.figure(figsize=figsize, dpi=96)
+            # Create gridspec
+            gs = matplotlib.gridspec.GridSpec(
+                nrows=2,
+                ncols=2,
+                wspace=0.3,
+                hspace=0.3,
+                width_ratios=[1, 1],
+                height_ratios=[1, 1],
+            )
 
-        # Create axes
-        ax_rv = fig_rv.add_subplot(1, 1, 1)
-        ax_pdf = fig_pdf.add_subplot(1, 1, 1)
-        ax_qq = fig_qq.add_subplot(1, 1, 1)
-        ax_pp = fig_pp.add_subplot(1, 1, 1)
+            # Create axes
+            ax_rv = fig.add_subplot(gs[0, 0])
+            ax_pdf = fig.add_subplot(gs[0, 1])
+            ax_qq = fig.add_subplot(gs[1, 0])
+            ax_pp = fig.add_subplot(gs[1, 1])
 
-        # Plot return values
-        self.plot_return_values(
-            return_period=return_period,
-            return_period_size=return_period_size,
-            alpha=alpha,
-            plotting_position=plotting_position,
-            ax=ax_rv,
-            **kwargs,
-        )
-        ax_rv.set_title("Return value plot")
-        ax_rv.grid(False, which="both")
+            # Plot return values
+            self.plot_return_values(
+                return_period=return_period,
+                return_period_size=return_period_size,
+                alpha=alpha,
+                plotting_position=plotting_position,
+                ax=ax_rv,
+                **kwargs,
+            )
+            ax_rv.set_title("Return value plot")
+            ax_rv.grid(False, which="both")
 
-        # Plot PDF
-        pdf_support = np.linspace(self.extremes.min(), self.extremes.max(), 100)
-        pdf = self.model.pdf(self.extremes_transformer.transform(pdf_support))
-        ax_pdf.grid(False)
-        ax_pdf.set_title("Probability density plot")
-        ax_pdf.set_ylabel("Probability density")
-        ax_pdf.set_xlabel(self.data.name)
-        ax_pdf.hist(
-            self.extremes.values,
-            bins=np.histogram_bin_edges(a=self.extremes.values, bins="auto"),
-            density=True,
-            rwidth=0.8,
-            facecolor="#5199FF",
-            edgecolor="None",
-            lw=0,
-            alpha=0.25,
-            zorder=5,
-        )
-        ax_pdf.hist(
-            self.extremes.values,
-            bins=np.histogram_bin_edges(a=self.extremes.values, bins="auto"),
-            density=True,
-            rwidth=0.8,
-            facecolor="None",
-            edgecolor="#5199FF",
-            lw=1,
-            ls="--",
-            zorder=10,
-        )
-        ax_pdf.plot(pdf_support, pdf, color="#F85C50", lw=2, ls="-", zorder=15)
-        ax_pdf.scatter(
-            self.extremes.values,
-            np.full(shape=len(self.extremes), fill_value=0),
-            marker="|",
-            s=40,
-            color="k",
-            lw=0.5,
-            zorder=15,
-        )
-        ax_pdf.set_ylim(0, ax_pdf.get_ylim()[1])
+            # Plot PDF
+            pdf_support = np.linspace(self.extremes.min(), self.extremes.max(), 100)
+            pdf = self.model.pdf(self.extremes_transformer.transform(pdf_support))
+            ax_pdf.grid(False)
+            ax_pdf.set_title("Probability density plot")
+            ax_pdf.set_ylabel("Probability density")
+            ax_pdf.set_xlabel(self.data.name)
+            ax_pdf.hist(
+                self.extremes.values,
+                bins=np.histogram_bin_edges(a=self.extremes.values, bins="auto"),
+                density=True,
+                rwidth=0.8,
+                facecolor="#5199FF",
+                edgecolor="None",
+                lw=0,
+                alpha=0.25,
+                zorder=5,
+            )
+            ax_pdf.hist(
+                self.extremes.values,
+                bins=np.histogram_bin_edges(a=self.extremes.values, bins="auto"),
+                density=True,
+                rwidth=0.8,
+                facecolor="None",
+                edgecolor="#5199FF",
+                lw=1,
+                ls="--",
+                zorder=10,
+            )
+            ax_pdf.plot(pdf_support, pdf, color="#F85C50", lw=2, ls="-", zorder=15)
+            ax_pdf.scatter(
+                self.extremes.values,
+                np.full(shape=len(self.extremes), fill_value=0),
+                marker="|",
+                s=40,
+                color="k",
+                lw=0.5,
+                zorder=15,
+            )
+            ax_pdf.set_ylim(0, ax_pdf.get_ylim()[1])
 
-        # Plot Q-Q plot
-        self.plot_probability(
-            plot_type="QQ",
-            return_period_size=return_period_size,
-            plotting_position=plotting_position,
-            ax=ax_qq,
-        )
-        ax_qq.set_title("Q-Q plot")
+            # Plot Q-Q plot
+            self.plot_probability(
+                plot_type="QQ",
+                return_period_size=return_period_size,
+                plotting_position=plotting_position,
+                ax=ax_qq,
+            )
+            ax_qq.set_title("Q-Q plot")
 
-        # Plot P-P plot
-        self.plot_probability(
-            plot_type="PP",
-            return_period_size=return_period_size,
-            plotting_position=plotting_position,
-            ax=ax_pp,
-        )
-        ax_pp.set_title("P-P plot")
+            # Plot P-P plot
+            self.plot_probability(
+                plot_type="PP",
+                return_period_size=return_period_size,
+                plotting_position=plotting_position,
+                ax=ax_pp,
+            )
+            ax_pp.set_title("P-P plot")
 
-        return (fig_rv, fig_pdf, fig_qq, fig_pp), (ax_rv, ax_pdf, ax_qq, ax_pp)
-
+            return fig, (ax_rv, ax_pdf, ax_qq, ax_pp)
