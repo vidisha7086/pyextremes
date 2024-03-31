@@ -1701,10 +1701,7 @@ class EVA:
             ax_pp.set_title("P-P plot")
 
             return fig, (ax_rv, ax_pdf, ax_qq, ax_pp)
-
-
-
-        def plot_diagnostic_new(
+            def plot_diagnostic_new(
         self,
         return_period=None,
         return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
