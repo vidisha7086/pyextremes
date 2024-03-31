@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.stats
+import os
 
 from pyextremes.extremes import ExtremesTransformer, get_extremes, get_return_periods
 from pyextremes.models import MLE, Distribution, Emcee, get_model
@@ -1858,7 +1859,7 @@ class EVA:
             return (fig_rv, fig_pdf, fig_qq, fig_pp), (ax_rv, ax_pdf, ax_qq, ax_pp)
 
         
-    import os
+   
 
     def plot_diagnostic_new_and_save(
             self,
