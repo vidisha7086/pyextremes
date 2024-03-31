@@ -1704,7 +1704,7 @@ class EVA:
 
 
 
-    def plot_diagnostic(
+    def plot_diagnostic_new(
     self,
     return_period=None,
     return_period_size: typing.Union[str, pd.Timedelta] = "365.2425D",
